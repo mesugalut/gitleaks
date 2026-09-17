@@ -16,6 +16,19 @@ func init() {
 	}
 }
 
+// base64Encodings are the four RFC 4648 variants: both alphabets (standard
+// `+/` and URL-safe `-_`), each padded and unpadded. The encodings that share
+// an alphabet are mutually exclusive on padding -- the padded form rejects a
+// length that is not a multiple of four, the raw form rejects `=` -- so at most
+// one member of each alphabet pair can succeed and the order only decides which
+// alphabet wins on input that is valid under both (which decodes identically).
+var base64Encodings = [...]*base64.Encoding{
+	base64.StdEncoding,
+	base64.RawStdEncoding,
+	base64.URLEncoding,
+	base64.RawURLEncoding,
+}
+
 // decodeBase64 decodes base64 encoded printable ASCII characters
 func decodeBase64(encodedValue string) string {
 	// Exit early if it doesn't seem like base64
@@ -23,16 +36,11 @@ func decodeBase64(encodedValue string) string {
 		return ""
 	}
 
-	// Try standard base64 decoding
-	decodedValue, err := base64.StdEncoding.DecodeString(encodedValue)
-	if err == nil && isPrintableASCII(decodedValue) {
-		return string(decodedValue)
-	}
-
-	// Try base64url decoding
-	decodedValue, err = base64.RawURLEncoding.DecodeString(encodedValue)
-	if err == nil && isPrintableASCII(decodedValue) {
-		return string(decodedValue)
+	for _, encoding := range base64Encodings {
+		decodedValue, err := encoding.DecodeString(encodedValue)
+		if err == nil && isPrintableASCII(decodedValue) {
+			return string(decodedValue)
+		}
 	}
 
 	return ""
